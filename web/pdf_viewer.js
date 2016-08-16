@@ -127,6 +127,7 @@ var PDFViewer = (function pdfViewer() {
     this.linkService = options.linkService || new SimpleLinkService();
     this.downloadManager = options.downloadManager || null;
     this.removePageBorders = options.removePageBorders || false;
+    this.enhanceTextSelection = true;
 
     this.defaultRenderingQueue = !options.renderingQueue;
     if (this.defaultRenderingQueue) {
@@ -352,7 +353,8 @@ var PDFViewer = (function pdfViewer() {
             defaultViewport: viewport.clone(),
             renderingQueue: this.renderingQueue,
             textLayerFactory: textLayerFactory,
-            annotationLayerFactory: this
+            annotationLayerFactory: this,
+            enhanceTextSelection: this.enhanceTextSelection
           });
           bindOnAfterAndBeforeDraw(pageView);
           this._pages.push(pageView);
@@ -798,13 +800,16 @@ var PDFViewer = (function pdfViewer() {
      * @param {PageViewport} viewport
      * @returns {TextLayerBuilder}
      */
-    createTextLayerBuilder: function (textLayerDiv, pageIndex, viewport) {
+    createTextLayerBuilder: function (textLayerDiv, pageIndex, viewport,
+                                      enhanceTextSelection) {
       return new TextLayerBuilder({
         textLayerDiv: textLayerDiv,
         eventBus: this.eventBus,
         pageIndex: pageIndex,
         viewport: viewport,
-        findController: this.isInPresentationMode ? null : this.findController
+        findController: this.isInPresentationMode ? null : this.findController,
+        enhanceTextSelection: this.isInPresentationMode ? false :
+                                                          enhanceTextSelection,
       });
     },
 

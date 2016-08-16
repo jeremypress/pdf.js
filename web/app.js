@@ -209,7 +209,7 @@ var PDFViewerApplication = {
       eventBus: eventBus,
       renderingQueue: pdfRenderingQueue,
       linkService: pdfLinkService,
-      downloadManager: downloadManager
+      downloadManager: downloadManager,
     });
     pdfRenderingQueue.setViewer(this.pdfViewer);
     pdfLinkService.setViewer(this.pdfViewer);

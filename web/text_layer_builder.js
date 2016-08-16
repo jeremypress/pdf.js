@@ -35,6 +35,9 @@
  * @property {number} pageIndex - The page index.
  * @property {PageViewport} viewport - The viewport of the text layer.
  * @property {PDFFindController} findController
+ * @property {boolean} enhanceTextSelection - Option to turn on improved
+ * text selection, true by default.
+
  */
 
 /**
@@ -57,6 +60,7 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
     this.textDivs = [];
     this.findController = options.findController || null;
     this.textLayerRenderTask = null;
+    this.enhanceTextSelection = options.enhanceTextSelection;
     this._bindMouse();
   }
 
@@ -64,9 +68,11 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
     _finishRendering: function TextLayerBuilder_finishRendering() {
       this.renderingDone = true;
 
+    if (!this.enhanceTextSelection) {
       var endOfContent = document.createElement('div');
       endOfContent.className = 'endOfContent';
       this.textLayerDiv.appendChild(endOfContent);
+    }
 
       this.eventBus.dispatch('textlayerrendered', {
         source: this,
@@ -96,7 +102,8 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
         container: textLayerFrag,
         viewport: this.viewport,
         textDivs: this.textDivs,
-        timeout: timeout
+        timeout: timeout,
+        enhanceTextSelection: this.enhanceTextSelection,
       });
       this.textLayerRenderTask.promise.then(function () {
         this.textLayerDiv.appendChild(textLayerFrag);
@@ -314,16 +321,21 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
      */
     _bindMouse: function TextLayerBuilder_bindMouse() {
       var div = this.textLayerDiv;
+      var self = this;
       div.addEventListener('mousedown', function (e) {
+        if (self.enhanceTextSelection && self.textLayerRenderTask) {
+          self.textLayerRenderTask.expandTextDivs(true);
+          return;
+        }
         var end = div.querySelector('.endOfContent');
         if (!end) {
           return;
         }
 //#if !(MOZCENTRAL || FIREFOX)
-        // On non-Firefox browsers, the selection will feel better if the height
-        // of the endOfContent div will be adjusted to start at mouse click
-        // location -- this will avoid flickering when selections moves up.
-        // However it does not work when selection started on empty space.
+        // On non-Firefox browsers, the selection will feel better if the
+        // height of the endOfContent div will be adjusted to start at mouse
+        // click location -- this will avoid flickering when selections moves
+        // up. However it does not work when selection started on empty space.
         var adjustTop = e.target !== div;
 //#if GENERIC
         adjustTop = adjustTop && window.getComputedStyle(end).
@@ -338,6 +350,10 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
         end.classList.add('active');
       });
       div.addEventListener('mouseup', function (e) {
+        if (self.enhanceTextSelection && self.textLayerRenderTask) {
+          self.textLayerRenderTask.expandTextDivs(false);
+          return;
+        }
         var end = div.querySelector('.endOfContent');
         if (!end) {
           return;
@@ -349,6 +365,7 @@ var TextLayerBuilder = (function TextLayerBuilderClosure() {
       });
     },
   };
+
   return TextLayerBuilder;
 })();
 
@@ -362,13 +379,16 @@ DefaultTextLayerFactory.prototype = {
    * @param {HTMLDivElement} textLayerDiv
    * @param {number} pageIndex
    * @param {PageViewport} viewport
+   * @param {boolean} enhanceTextSelection
    * @returns {TextLayerBuilder}
    */
-  createTextLayerBuilder: function (textLayerDiv, pageIndex, viewport) {
+  createTextLayerBuilder: function (textLayerDiv, pageIndex, viewport,
+                                    enhanceTextSelection) {
     return new TextLayerBuilder({
       textLayerDiv: textLayerDiv,
       pageIndex: pageIndex,
-      viewport: viewport
+      viewport: viewport,
+      enhanceTextSelection: enhanceTextSelection
     });
   }
 };
